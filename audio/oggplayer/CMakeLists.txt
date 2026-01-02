@@ -14,7 +14,8 @@ endif()
 message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
 # PROJECT #
-project("application" LANGUAGES CXX C ASM)
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME PROJECT_NAME)
+project(${PROJECT_NAME} LANGUAGES CXX C ASM)
 
 # Debugging variables:
 #set(CMAKE_MESSAGE_LOG_LEVEL VERBOSE) # Log target info
@@ -33,7 +34,7 @@ endif()
 
 # Examples root contains devkitpro config package
 set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/devkitpro")
-find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc elf2dol)
+find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc ppc-libvorbisidec bin2s elf2dol)
 
 # Global Compiler Flags
 set(warning_flags "-Winline" "-Wall" "-Wextra")
@@ -59,8 +60,14 @@ add_link_options(
     "$<$<CONFIG:RelWithDebInfo>:${releaseWithDebInfo_flags}>"
 )
 
+# ASSETS #
+set(data_files "sample.ogg")
+dkp_add_bin2s(data_bin2s "${data_files}" "data" "")
+target_link_libraries(data_bin2s PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>")
+
 # SOURCE #
 add_executable(source_executable
+    "source/oggplayer.c"
     "source/template.c"
 )
 dkp_target_generate_symbol_table(source_executable)
@@ -68,9 +75,12 @@ dkp_target_generate_symbol_table(source_executable)
 target_link_libraries(source_executable
     PRIVATE "$<$<CONFIG:Debug,RelWithDebInfo>:dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::db>" # Note: db library must be linked first (see https://wiibrew.org/wiki/Debugging)
     PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>"
+    PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::asnd"
     PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::ogc"
+    PRIVATE "dkp::ppc::vorbisidec"
     PRIVATE "m"
 )
+target_link_libraries(source_executable PUBLIC data_bin2s)
 
 # elf2dol - .dol executable
 dkp_add_elf2dol("${PROJECT_NAME}_dol" "${PROJECT_NAME}.dol" $<TARGET_FILE:source_executable> TRUE)

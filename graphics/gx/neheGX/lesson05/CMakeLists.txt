@@ -14,7 +14,8 @@ endif()
 message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
 # PROJECT #
-project("application" LANGUAGES CXX C ASM)
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME PROJECT_NAME)
+project(${PROJECT_NAME} LANGUAGES CXX C ASM)
 
 # Debugging variables:
 #set(CMAKE_MESSAGE_LOG_LEVEL VERBOSE) # Log target info
@@ -22,7 +23,7 @@ project("application" LANGUAGES CXX C ASM)
 #set(CMAKE_FIND_DEBUG_MODE ON) # Log debugging info for find commands
 
 # Set the default search path for modules when using include / find_package
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake")
 
 # Set to ON when target system is Wii - CMAKE_SYSTEM_NAME is set by toolchain files
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii")
@@ -32,7 +33,7 @@ else()
 endif()
 
 # Examples root contains devkitpro config package
-set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/devkitpro")
+set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/devkitpro")
 find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc elf2dol)
 
 # Global Compiler Flags
@@ -61,7 +62,7 @@ add_link_options(
 
 # SOURCE #
 add_executable(source_executable
-    "source/template.c"
+    "source/lesson5.c"
 )
 dkp_target_generate_symbol_table(source_executable)
 

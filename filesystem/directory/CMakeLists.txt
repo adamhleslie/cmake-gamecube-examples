@@ -14,7 +14,8 @@ endif()
 message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
 # PROJECT #
-project("application" LANGUAGES CXX C ASM)
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME PROJECT_NAME)
+project(${PROJECT_NAME} LANGUAGES CXX C ASM)
 
 # Debugging variables:
 #set(CMAKE_MESSAGE_LOG_LEVEL VERBOSE) # Log target info
@@ -61,13 +62,14 @@ add_link_options(
 
 # SOURCE #
 add_executable(source_executable
-    "source/template.c"
+    "source/directory.c"
 )
 dkp_target_generate_symbol_table(source_executable)
 
 target_link_libraries(source_executable
     PRIVATE "$<$<CONFIG:Debug,RelWithDebInfo>:dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::db>" # Note: db library must be linked first (see https://wiibrew.org/wiki/Debugging)
     PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>"
+    PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::fat"
     PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::ogc"
     PRIVATE "m"
 )

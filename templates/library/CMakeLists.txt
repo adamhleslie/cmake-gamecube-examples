@@ -14,7 +14,7 @@ endif()
 message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
 # PROJECT #
-project("application" LANGUAGES CXX C ASM)
+project("library" LANGUAGES CXX C ASM)
 
 # Debugging variables:
 #set(CMAKE_MESSAGE_LOG_LEVEL VERBOSE) # Log target info
@@ -33,7 +33,7 @@ endif()
 
 # Examples root contains devkitpro config package
 set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/devkitpro")
-find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc elf2dol)
+find_package(devkitpro CONFIG REQUIRED)
 
 # Global Compiler Flags
 set(warning_flags "-Winline" "-Wall" "-Wextra")
@@ -60,17 +60,14 @@ add_link_options(
 )
 
 # SOURCE #
-add_executable(source_executable
-    "source/template.c"
+add_library("${PROJECT_NAME}" STATIC
+    "source/templatelib.c"
 )
-dkp_target_generate_symbol_table(source_executable)
+target_include_directories("${PROJECT_NAME}"
+    PRIVATE "include"
+)
+dkp_target_generate_symbol_table("${PROJECT_NAME}")
 
-target_link_libraries(source_executable
-    PRIVATE "$<$<CONFIG:Debug,RelWithDebInfo>:dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::db>" # Note: db library must be linked first (see https://wiibrew.org/wiki/Debugging)
+target_link_libraries("${PROJECT_NAME}"
     PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>"
-    PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::ogc"
-    PRIVATE "m"
 )
-
-# elf2dol - .dol executable
-dkp_add_elf2dol("${PROJECT_NAME}_dol" "${PROJECT_NAME}.dol" $<TARGET_FILE:source_executable> TRUE)

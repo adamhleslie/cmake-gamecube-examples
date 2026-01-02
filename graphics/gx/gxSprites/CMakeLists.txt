@@ -14,7 +14,8 @@ endif()
 message(STATUS "Using toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
 # PROJECT #
-project("application" LANGUAGES CXX C ASM)
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME PROJECT_NAME)
+project(${PROJECT_NAME} LANGUAGES CXX C ASM)
 
 # Debugging variables:
 #set(CMAKE_MESSAGE_LOG_LEVEL VERBOSE) # Log target info
@@ -22,7 +23,7 @@ project("application" LANGUAGES CXX C ASM)
 #set(CMAKE_FIND_DEBUG_MODE ON) # Log debugging info for find commands
 
 # Set the default search path for modules when using include / find_package
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake")
 
 # Set to ON when target system is Wii - CMAKE_SYSTEM_NAME is set by toolchain files
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii")
@@ -32,8 +33,8 @@ else()
 endif()
 
 # Examples root contains devkitpro config package
-set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/devkitpro")
-find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc elf2dol)
+set(devkitpro_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake/devkitpro")
+find_package(devkitpro CONFIG REQUIRED COMPONENTS libogc gxtexconv bin2s elf2dol)
 
 # Global Compiler Flags
 set(warning_flags "-Winline" "-Wall" "-Wextra")
@@ -59,9 +60,20 @@ add_link_options(
     "$<$<CONFIG:RelWithDebInfo>:${releaseWithDebInfo_flags}>"
 )
 
+# ASSETS #
+set(scf_files "textures.scf")
+dkp_add_gxtexconv(assets_gxtexconv "${scf_files}" "textures" "")
+get_target_property(gxtexconv_files assets_gxtexconv DKP_GXTEXCONV_TPL_FILES)
+
+# bin2s - Binary Files
+dkp_add_bin2s(assets_bin2s "${gxtexconv_files}" "${CMAKE_CURRENT_BINARY_DIR}" "")
+add_dependencies(assets_bin2s assets_gxtexconv)
+target_link_libraries(assets_bin2s INTERFACE assets_gxtexconv)
+target_link_libraries(assets_bin2s PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>")
+
 # SOURCE #
 add_executable(source_executable
-    "source/template.c"
+    "source/gxsprites.c"
 )
 dkp_target_generate_symbol_table(source_executable)
 
@@ -69,8 +81,8 @@ target_link_libraries(source_executable
     PRIVATE "$<$<CONFIG:Debug,RelWithDebInfo>:dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::db>" # Note: db library must be linked first (see https://wiibrew.org/wiki/Debugging)
     PRIVATE "dkp::$<IF:$<BOOL:${WII}>,wii,gamecube>"
     PRIVATE "dkp::libogc::$<IF:$<BOOL:${WII}>,wii,gamecube>::ogc"
-    PRIVATE "m"
 )
+target_link_libraries(source_executable PUBLIC assets_bin2s)
 
 # elf2dol - .dol executable
 dkp_add_elf2dol("${PROJECT_NAME}_dol" "${PROJECT_NAME}.dol" $<TARGET_FILE:source_executable> TRUE)
